@@ -17,10 +17,11 @@ jobs:
           script: |
             if [ -d ~/juya-daily-scheduler/.git ]; then
               cd ~/juya-daily-scheduler
+              git remote set-url origin https://github.com/${{ github.repository }}.git
               git pull origin main
             else
               rm -rf ~/juya-daily-scheduler
-              git clone git@github.com:${{ github.repository }}.git ~/juya-daily-scheduler
+              git clone https://github.com/${{ github.repository }}.git ~/juya-daily-scheduler
               cd ~/juya-daily-scheduler
             fi
 
