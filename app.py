@@ -29,6 +29,7 @@ def main():
             run,
             CronTrigger(hour=9, minute=30),
             id="daily_briefing",
+            name="juya-ai-daily-job",
         )
         logger.info("定时任务已启动，每天北京时间 09:30 执行")
         try:
