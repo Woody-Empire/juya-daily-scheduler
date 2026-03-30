@@ -1,6 +1,7 @@
 services:
   scheduler:
     build: .
+    image: juya-daily-scheduler
     container_name: juya-scheduler
     restart: always
     env_file:
