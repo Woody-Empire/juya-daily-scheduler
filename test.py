@@ -20,10 +20,10 @@ def run():
 
 
 if __name__ == "__main__":
-    scheduler = BlockingScheduler()
+    scheduler = BlockingScheduler(timezone="Asia/Shanghai")
     scheduler.add_job(
         run,
-        CronTrigger(hour=15, minute=0),
+        CronTrigger(hour=17, minute=56),
         id="test_daily_briefing",
     )
     logger.info("定时任务已启动，将在 15:00 执行")

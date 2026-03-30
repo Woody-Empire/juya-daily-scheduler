@@ -24,11 +24,10 @@ def main():
         from apscheduler.schedulers.blocking import BlockingScheduler
         from apscheduler.triggers.cron import CronTrigger
 
-        scheduler = BlockingScheduler()
-        # 北京时间 09:30 = UTC 01:30
+        scheduler = BlockingScheduler(timezone="Asia/Shanghai")
         scheduler.add_job(
             run,
-            CronTrigger(hour=1, minute=30),
+            CronTrigger(hour=9, minute=30),
             id="daily_briefing",
         )
         logger.info("定时任务已启动，每天北京时间 09:30 执行")
