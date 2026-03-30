@@ -1,0 +1,28 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            if [ -d ~/juya-daily-scheduler/.git ]; then
+              cd ~/juya-daily-scheduler
+              git pull origin main
+            else
+              rm -rf ~/juya-daily-scheduler
+              git clone git@github.com:${{ github.repository }}.git ~/juya-daily-scheduler
+              cd ~/juya-daily-scheduler
+            fi
+
+            docker compose up -d --build --force-recreate
+            docker image prune -f

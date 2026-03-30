@@ -1,0 +1,7 @@
+services:
+  scheduler:
+    build: .
+    container_name: juya-scheduler
+    restart: always
+    env_file:
+      - .env
