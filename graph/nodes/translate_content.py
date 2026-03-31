@@ -1,6 +1,5 @@
 import os
 import logging
-from datetime import datetime, timezone, timedelta
 
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -8,8 +7,6 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from graph.state import State
 
 logger = logging.getLogger(__name__)
-
-BJT = timezone(timedelta(hours=8))
 
 SYSTEM_PROMPT = """\
 你是一位专业的信息分析助手，负责将 RSS 信息源的原始内容整理为一份简洁、有深度的每日简报，供个人快速阅读。
@@ -131,9 +128,5 @@ def translate_content(state: State) -> dict:
         HumanMessage(content=state["rss_content"]),
     ])
 
-    today = datetime.now(BJT).strftime("%Y-%m-%d")
     logger.info("LLM 生成完成")
-    return {
-        "markdown_content": response.content,
-        "subject": f"AI-Daily - {today}",
-    }
+    return {"markdown_content": response.content}
