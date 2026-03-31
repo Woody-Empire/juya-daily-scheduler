@@ -27,11 +27,11 @@ def main():
         scheduler = BlockingScheduler(timezone="Asia/Shanghai")
         scheduler.add_job(
             run,
-            CronTrigger(hour=17, minute=10, timezone="Asia/Shanghai"),
+            CronTrigger(hour=10, minute=0, timezone="Asia/Shanghai"),
             id="daily_briefing",
             name="juya-ai-daily-job",
         )
-        logger.info("定时任务已启动，每天北京时间 09:30 执行")
+        logger.info("定时任务已启动，每天北京时间 10:00 执行")
         try:
             scheduler.start()
         except (KeyboardInterrupt, SystemExit):
