@@ -27,7 +27,7 @@ def main():
         scheduler = BlockingScheduler(timezone="Asia/Shanghai")
         scheduler.add_job(
             run,
-            CronTrigger(hour=9, minute=30, timezone="Asia/Shanghai"),
+            CronTrigger(hour=14, minute=2, timezone="Asia/Shanghai"),
             id="daily_briefing",
             name="juya-ai-daily-job",
         )
