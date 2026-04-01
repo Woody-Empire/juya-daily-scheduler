@@ -14,6 +14,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+
+
 def run():
     ai_daily_app.invoke({})
     logger.info("流水线执行完成")
