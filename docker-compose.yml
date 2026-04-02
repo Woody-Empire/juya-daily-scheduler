@@ -1,8 +1,12 @@
 services:
-  scheduler:
+  web:
     build: .
     image: juya-daily-scheduler
-    container_name: juya-scheduler
+    container_name: juya-daily
     restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
     env_file:
       - .env
