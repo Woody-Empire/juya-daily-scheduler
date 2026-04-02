@@ -623,7 +623,7 @@
   /* ══ Articles ══ */
   async function loadArticles() {
     try {
-      const res = await fetch('/api/articles');
+      const res = await fetch('/ai-daily/api/articles');
       allArticles = await res.json();
       renderArticles(allArticles);
       if (currentDate) renderSidebar();
@@ -778,7 +778,7 @@
   /* ══ Reading view ══ */
   async function openArticle(date) {
     try {
-      const res = await fetch(`/api/articles/${date}`);
+      const res = await fetch(`/ai-daily/api/articles/${date}`);
       if (!res.ok) throw new Error();
       const data = await res.json();
 
@@ -827,7 +827,7 @@
     btn.innerHTML = '<span class="spinner spinner-white"></span>获取中...';
 
     try {
-      const res = await fetch(`/api/rss/pending?since=${since}`);
+      const res = await fetch(`/ai-daily/api/rss/pending?since=${since}`);
       pendingEntries = await res.json();
 
       if (!pendingEntries.length) {
@@ -899,7 +899,7 @@
     try {
       const selectedRssIndices = indices.map(i => pendingEntries[i].index);
 
-      const res = await fetch('/api/translate', {
+      const res = await fetch('/ai-daily/api/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ since, selected_indices: selectedRssIndices }),
@@ -944,7 +944,7 @@
 
   async function refreshTasks() {
     try {
-      const res = await fetch('/api/tasks');
+      const res = await fetch('/ai-daily/api/tasks');
       const tasks = await res.json();
       renderTasks(tasks);
 
@@ -978,7 +978,7 @@
 
   async function clearTask(id) {
     try {
-      await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
+      await fetch(`/ai-daily/api/tasks/${id}`, { method: 'DELETE' });
       refreshTasks();
     } catch (e) { /* ignore */ }
   }

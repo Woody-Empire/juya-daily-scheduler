@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone, timedelta
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -24,7 +24,9 @@ logger = logging.getLogger(__name__)
 BJT = timezone(timedelta(hours=8))
 
 app = FastAPI(title="Juya AI Daily")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/ai-daily/static", StaticFiles(directory="static"), name="static")
+
+router = APIRouter(prefix="/ai-daily")
 
 # --- Task Manager ---
 tasks: dict[str, dict] = {}
@@ -54,12 +56,12 @@ class TranslateRequest(BaseModel):
     selected_indices: list[int]
 
 
-@app.get("/", response_class=HTMLResponse)
+@router.get("/", response_class=HTMLResponse)
 async def index():
     return FileResponse("static/index.html")
 
 
-@app.get("/api/rss/pending")
+@router.get("/api/rss/pending")
 async def get_pending_entries(since: str | None = None):
     if since is None:
         since = datetime.now(BJT).strftime("%Y-%m-%d")
@@ -87,7 +89,7 @@ async def get_pending_entries(since: str | None = None):
     return result
 
 
-@app.post("/api/translate")
+@router.post("/api/translate")
 async def translate_entries(req: TranslateRequest):
     all_entries = fetch_rss_entries(since=req.since)
     translated = set(get_translated_dates())
@@ -112,13 +114,13 @@ async def translate_entries(req: TranslateRequest):
     return {"task_ids": task_ids}
 
 
-@app.get("/api/tasks")
+@router.get("/api/tasks")
 async def list_tasks():
     with tasks_lock:
         return list(tasks.values())
 
 
-@app.delete("/api/tasks/{task_id}")
+@router.delete("/api/tasks/{task_id}")
 async def delete_task(task_id: str):
     with tasks_lock:
         task = tasks.get(task_id)
@@ -130,17 +132,20 @@ async def delete_task(task_id: str):
     return {"ok": True}
 
 
-@app.get("/api/articles")
+@router.get("/api/articles")
 async def list_articles():
     return get_translated_dates()
 
 
-@app.get("/api/articles/{date}")
+@router.get("/api/articles/{date}")
 async def get_article(date: str):
     file_path = ARTICLES_DIR / f"{date}.md"
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="文章不存在")
     return {"markdown": file_path.read_text(encoding="utf-8")}
+
+
+app.include_router(router)
 
 
 if __name__ == "__main__":
