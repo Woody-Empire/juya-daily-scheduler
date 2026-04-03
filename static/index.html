@@ -281,6 +281,7 @@
     .task-status.running { background: var(--accent); color: var(--accent-text); }
     .task-status.completed { background: #eef6ee; color: #4a8c50; }
     .task-status.failed { background: #fbeded; color: #c25450; }
+    .task-error { font-size: 11px; color: #c25450; margin-top: 4px; word-break: break-all; }
     .task-clear { font-size: 13px; color: var(--text-tertiary); cursor: pointer; border: none; background: none; padding: 2px 4px; flex-shrink: 0; transition: color 0.1s; }
     .task-clear:hover { color: var(--text); }
     .task-empty { text-align: center; padding: 32px 0; color: var(--text-tertiary); font-size: 13px; }
@@ -967,6 +968,7 @@
         <div class="task-info">
           <div class="task-title">${escapeHtml(t.title)}</div>
           <div class="task-date">${t.date}</div>
+          ${t.status === 'failed' && t.error ? `<div class="task-error">${escapeHtml(t.error)}</div>` : ''}
         </div>
         <span class="task-status ${t.status}">
           ${t.status === 'running' ? '<span class="spinner" style="width:10px;height:10px;margin-right:4px;border-width:1.5px;"></span>' : ''}${STATUS_LABEL[t.status]}
