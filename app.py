@@ -26,9 +26,9 @@ logger = logging.getLogger(__name__)
 BJT = timezone(timedelta(hours=8))
 
 app = FastAPI(title="Juya AI Daily")
-app.mount("/ai-daily/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-router = APIRouter(prefix="/ai-daily")
+router = APIRouter()
 
 # --- Task Manager ---
 tasks: dict[str, dict] = {}
