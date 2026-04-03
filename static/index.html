@@ -132,14 +132,21 @@
     .reading-layout.active { display: flex; }
 
     /* Sidebar */
-    .sidebar {
+    .sidebar-wrapper {
       width: 240px;
       flex-shrink: 0;
       border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .sidebar {
+      flex: 1;
       overflow-y: auto;
       padding: 4px 0;
       background: var(--bg);
     }
+    .sidebar-dropdown { display: none; }
     .sidebar-item {
       padding: 8px 16px;
       cursor: pointer;
@@ -157,6 +164,52 @@
       border-left-color: var(--accent-solid);
     }
     .sidebar-date { font-variant-numeric: tabular-nums; letter-spacing: -0.2px; }
+    .sidebar-date-header {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-left: 2px solid transparent;
+      transition: all 0.1s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .sidebar-date-header:hover { background: var(--bg-secondary); }
+    .sidebar-date-header.has-active { border-left-color: var(--accent-solid); }
+    .sidebar-chevron {
+      display: inline-block; width: 14px; height: 14px; flex-shrink: 0;
+      transition: transform 0.2s ease;
+      color: var(--text-tertiary);
+      margin-right: 2px;
+    }
+    .sidebar-date-header.expanded .sidebar-chevron { transform: rotate(90deg); }
+    .sidebar-sub-list {
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 0.25s ease;
+    }
+    .sidebar-sub-list.open { max-height: 500px; }
+    .sidebar-sub-item {
+      padding: 6px 16px 6px 32px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      transition: all 0.1s;
+      border-left: 2px solid transparent;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sidebar-sub-item:hover { background: var(--bg-secondary); color: var(--text-secondary); }
+    .sidebar-sub-item.active {
+      background: var(--accent);
+      color: var(--accent-text);
+      font-weight: 600;
+      border-left-color: var(--accent-solid);
+    }
 
     /* Detail panel */
     .detail-panel {
@@ -181,6 +234,33 @@
     .article-item:hover { background: var(--accent); }
     .article-date { font-size: 12px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; font-weight: 500; }
     .article-title { font-size: 15px; font-weight: 500; margin-top: 2px; color: var(--text); }
+    .article-count { font-size: 11px; color: var(--accent-text); background: var(--accent); padding: 1px 7px; border-radius: 10px; margin-left: 8px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .article-date-row { display: flex; align-items: center; }
+    .article-chevron {
+      display: inline-block; width: 16px; height: 16px; margin-right: 4px; flex-shrink: 0;
+      transition: transform 0.2s ease;
+      color: var(--text-tertiary);
+    }
+    .article-item.expanded .article-chevron { transform: rotate(90deg); }
+    .article-sub-list {
+      list-style: none;
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 0.25s ease;
+    }
+    .article-sub-list.open { max-height: 500px; }
+    .article-sub-item {
+      padding: 10px 16px 10px 36px;
+      cursor: pointer;
+      transition: all 0.1s;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+    .article-sub-item:hover { background: var(--accent); color: var(--accent-text); }
+    .article-sub-item:last-child { border-bottom: none; }
     .empty-state { text-align: center; padding: 80px 0; color: var(--text-tertiary); font-size: 14px; }
 
     /* ── Article content ── */
@@ -281,6 +361,7 @@
     .task-status.running { background: var(--accent); color: var(--accent-text); }
     .task-status.completed { background: #eef6ee; color: #4a8c50; }
     .task-status.failed { background: #fbeded; color: #c25450; }
+    .task-status.cancelled { background: #fff3e0; color: #e65100; }
     .task-error { font-size: 11px; color: #c25450; margin-top: 4px; word-break: break-all; }
     .task-clear { font-size: 13px; color: var(--text-tertiary); cursor: pointer; border: none; background: none; padding: 2px 4px; flex-shrink: 0; transition: color 0.1s; }
     .task-clear:hover { color: var(--text); }
@@ -456,27 +537,34 @@
       .main-list { padding: 12px 16px; }
       .article-item { padding: 12px 14px; }
       .article-title { font-size: 14px; }
+      .article-sub-item { padding: 10px 14px 10px 32px; font-size: 13px; }
 
       /* Reading: stack vertically */
       .reading-layout.active { flex-direction: column; height: auto; min-height: calc(100vh - 55px); }
-      .sidebar {
+      .sidebar-wrapper {
         width: 100%;
-        height: auto;
-        max-height: none;
+        flex-shrink: 0;
         border-right: none;
         border-bottom: 1px solid var(--border);
-        flex-shrink: 0;
+        overflow: visible;
+      }
+      .sidebar {
         display: flex;
         flex-direction: row;
         overflow-x: auto;
         overflow-y: hidden;
         padding: 8px 12px;
-        gap: 4px;
+        gap: 6px;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
+        flex: none;
       }
       .sidebar::-webkit-scrollbar { display: none; }
-      .sidebar .sidebar-item {
+      /* Hide desktop-only collapsible structures on mobile */
+      .sidebar .sidebar-group { display: contents; }
+      .sidebar .sidebar-sub-list { display: none; }
+      .sidebar .sidebar-item,
+      .sidebar .sidebar-date-header {
         flex-shrink: 0;
         padding: 5px 12px;
         border-radius: 3px;
@@ -484,13 +572,45 @@
         font-size: 12px;
         background: var(--bg-secondary);
         color: var(--text-secondary);
+        white-space: nowrap;
       }
-      .sidebar .sidebar-item:hover { background: var(--accent); }
+      .sidebar .sidebar-item:hover,
+      .sidebar .sidebar-date-header:hover { background: var(--accent); }
       .sidebar .sidebar-item.active {
         background: var(--accent);
         color: var(--accent-text);
         font-weight: 600;
-        border-left-color: transparent;
+      }
+      .sidebar .sidebar-date-header.has-active {
+        background: var(--accent);
+        color: var(--accent-text);
+        border-left: none;
+      }
+      .sidebar .sidebar-date-header .sidebar-chevron {
+        width: 12px; height: 12px;
+      }
+      /* Mobile dropdown panel below sidebar row */
+      .sidebar-dropdown {
+        display: none;
+        padding: 6px 12px 8px;
+        background: var(--bg-secondary);
+        border-top: 1px solid var(--border);
+      }
+      .sidebar-dropdown.open { display: flex; flex-direction: column; gap: 2px; }
+      .sidebar-dropdown .sd-item {
+        padding: 8px 14px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.1s;
+      }
+      .sidebar-dropdown .sd-item:hover { background: var(--accent); }
+      .sidebar-dropdown .sd-item.active {
+        background: var(--accent);
+        color: var(--accent-text);
+        font-weight: 600;
       }
       .detail-panel { padding: 20px 16px; }
 
@@ -568,7 +688,10 @@
 
 <!-- Reading view (two-column) -->
 <div class="reading-layout" id="readingLayout">
-  <div class="sidebar" id="sidebar"></div>
+  <div class="sidebar-wrapper">
+    <div class="sidebar" id="sidebar"></div>
+    <div class="sidebar-dropdown" id="sidebarDropdown"></div>
+  </div>
   <div class="detail-panel" id="detailPanel">
     <div class="article-content" id="articleContent"></div>
   </div>
@@ -606,9 +729,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
-  let allArticles = [];
+  let allArticles = [];   // [{id, date, title}, ...]
   let pendingEntries = [];
-  let currentDate = null;
+  let currentArticleId = null;
   let pollTimer = null;
 
   /* ── Date picker state ── */
@@ -622,32 +745,70 @@
   loadArticles();
 
   /* ══ Articles ══ */
+  function groupByDate(articles) {
+    const map = new Map();
+    for (const a of articles) {
+      if (!map.has(a.date)) map.set(a.date, []);
+      map.get(a.date).push(a);
+    }
+    return map;
+  }
+
   async function loadArticles() {
     try {
       const res = await fetch('/ai-daily/api/articles');
       allArticles = await res.json();
       renderArticles(allArticles);
-      if (currentDate) renderSidebar();
+      if (currentArticleId) renderSidebar();
     } catch (e) {
       showToast('加载文章列表失败');
     }
   }
 
-  function renderArticles(dates) {
+  function renderArticles(articles) {
     const list = document.getElementById('articleList');
     const empty = document.getElementById('emptyState');
-    if (!dates.length) {
+    if (!articles.length) {
       list.innerHTML = '';
       empty.style.display = 'block';
       return;
     }
     empty.style.display = 'none';
-    list.innerHTML = dates.map(date => `
-      <li class="article-item" onclick="openArticle('${date}')">
-        <div class="article-date">${date}</div>
-        <div class="article-title">AI 每日简报 — ${date}</div>
-      </li>
-    `).join('');
+    const grouped = groupByDate(articles);
+    let html = '';
+    for (const [date, items] of grouped) {
+      if (items.length === 1) {
+        html += `
+          <li class="article-item" onclick="openArticle('${items[0].id}')">
+            <div class="article-date">${date}</div>
+            <div class="article-title">${escapeHtml(items[0].title)}</div>
+          </li>`;
+      } else {
+        const uid = date.replace(/-/g, '');
+        html += `
+          <li class="article-item" id="ag_${uid}" onclick="toggleDateGroup('${uid}')">
+            <div class="article-date-row">
+              <svg class="article-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4l4 4-4 4"/></svg>
+              <div>
+                <div class="article-date">${date}<span class="article-count">${items.length} 篇</span></div>
+                <div class="article-title">AI 每日简报 — ${date}</div>
+              </div>
+            </div>
+          </li>
+          <ul class="article-sub-list" id="asl_${uid}">
+            ${items.map(a => `<li class="article-sub-item" onclick="event.stopPropagation(); openArticle('${a.id}')">${escapeHtml(a.title)}</li>`).join('')}
+          </ul>`;
+      }
+    }
+    list.innerHTML = html;
+  }
+
+  function toggleDateGroup(uid) {
+    const item = document.getElementById('ag_' + uid);
+    const sub = document.getElementById('asl_' + uid);
+    if (!item || !sub) return;
+    item.classList.toggle('expanded');
+    sub.classList.toggle('open');
   }
 
   /* ══ Mobile menu ══ */
@@ -749,13 +910,14 @@
     const dateStr = fmtDate(y, m, d);
 
     if (dpMode === 'filter') {
-      if (currentDate) {
-        if (allArticles.includes(dateStr)) openArticle(dateStr);
+      const matched = allArticles.filter(a => a.date === dateStr);
+      if (currentArticleId) {
+        if (matched.length === 1) openArticle(matched[0].id);
+        else if (matched.length > 1) { showList(); renderArticles(matched); }
         else showToast('该日期暂无文章');
       } else {
-        const filtered = allArticles.filter(dd => dd === dateStr);
-        renderArticles(filtered);
-        if (!filtered.length) showToast('该日期暂无文章');
+        renderArticles(matched);
+        if (!matched.length) showToast('该日期暂无文章');
       }
     } else if (dpMode === 'fetch') {
       fetchPending(dateStr);
@@ -777,17 +939,22 @@
   });
 
   /* ══ Reading view ══ */
-  async function openArticle(date) {
+  async function openArticle(articleId) {
     try {
-      const res = await fetch(`/ai-daily/api/articles/${date}`);
+      const res = await fetch(`/ai-daily/api/articles/${articleId}`);
       if (!res.ok) throw new Error();
       const data = await res.json();
 
-      currentDate = date;
+      currentArticleId = articleId;
       document.getElementById('articleContent').innerHTML = marked.parse(data.markdown);
 
       document.getElementById('mainList').classList.add('hidden');
       document.getElementById('readingLayout').classList.add('active');
+
+      // Close mobile dropdown if open
+      const dd = document.getElementById('sidebarDropdown');
+      if (dd) { dd.classList.remove('open'); dd.innerHTML = ''; }
+      activeSidebarUid = null;
 
       renderSidebar();
       document.getElementById('detailPanel').scrollTop = 0;
@@ -798,18 +965,87 @@
 
   function renderSidebar() {
     const sidebar = document.getElementById('sidebar');
-    sidebar.innerHTML = allArticles.map(date => `
-      <div class="sidebar-item ${date === currentDate ? 'active' : ''}" onclick="openArticle('${date}')">
-        <div class="sidebar-date">${date}</div>
-      </div>
-    `).join('');
+    const grouped = groupByDate(allArticles);
+    let html = '';
+    for (const [date, items] of grouped) {
+      if (items.length === 1) {
+        html += `
+          <div class="sidebar-item ${items[0].id === currentArticleId ? 'active' : ''}" onclick="openArticle('${items[0].id}')">
+            <div class="sidebar-date">${date}</div>
+          </div>`;
+      } else {
+        const hasActive = items.some(a => a.id === currentArticleId);
+        const uid = date.replace(/-/g, '');
+        const expanded = hasActive ? ' expanded' : '';
+        const open = hasActive ? ' open' : '';
+        html += `<div class="sidebar-group${hasActive ? ' expanded' : ''}">`;
+        html += `<div class="sidebar-date-header${expanded} ${hasActive ? 'has-active' : ''}" onclick="toggleSidebarGroup('${uid}')">
+            <svg class="sidebar-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4l4 4-4 4"/></svg>
+            <span class="sidebar-date">${date}</span><span class="article-count">${items.length}</span>
+          </div>`;
+        html += `<div class="sidebar-sub-list${open}" id="ssl_${uid}">`;
+        html += items.map(a => `
+            <div class="sidebar-sub-item ${a.id === currentArticleId ? 'active' : ''}" onclick="openArticle('${a.id}')" title="${escapeHtml(a.title)}">
+              ${escapeHtml(a.title)}
+            </div>`).join('');
+        html += `</div></div>`;
+      }
+    }
+    sidebar.innerHTML = html;
 
-    const active = sidebar.querySelector('.sidebar-item.active');
+    const active = sidebar.querySelector('.sidebar-item.active, .sidebar-sub-item.active');
     if (active) active.scrollIntoView({ block: 'nearest' });
   }
 
+  let activeSidebarUid = null;
+
+  function toggleSidebarGroup(uid) {
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+      toggleSidebarDropdown(uid);
+    } else {
+      const sub = document.getElementById('ssl_' + uid);
+      if (!sub) return;
+      const header = sub.previousElementSibling;
+      const group = sub.parentElement;
+      header.classList.toggle('expanded');
+      sub.classList.toggle('open');
+      group.classList.toggle('expanded');
+    }
+  }
+
+  function toggleSidebarDropdown(uid) {
+    const dropdown = document.getElementById('sidebarDropdown');
+    if (!dropdown) return;
+
+    // Close if same group tapped again
+    if (activeSidebarUid === uid) {
+      dropdown.classList.remove('open');
+      dropdown.innerHTML = '';
+      activeSidebarUid = null;
+      // Reset chevrons
+      document.querySelectorAll('.sidebar .sidebar-date-header.expanded').forEach(h => h.classList.remove('expanded'));
+      return;
+    }
+
+    // Reset all chevrons then expand tapped one
+    document.querySelectorAll('.sidebar .sidebar-date-header.expanded').forEach(h => h.classList.remove('expanded'));
+    const header = document.querySelector(`.sidebar .sidebar-date-header[onclick*="'${uid}'"]`);
+    if (header) header.classList.add('expanded');
+
+    // Find items for this date
+    const date = uid.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
+    const items = allArticles.filter(a => a.date === date);
+
+    dropdown.innerHTML = items.map(a =>
+      `<div class="sd-item ${a.id === currentArticleId ? 'active' : ''}" onclick="openArticle('${a.id}')">${escapeHtml(a.title)}</div>`
+    ).join('');
+    dropdown.classList.add('open');
+    activeSidebarUid = uid;
+  }
+
   function showList() {
-    currentDate = null;
+    currentArticleId = null;
     document.getElementById('readingLayout').classList.remove('active');
     document.getElementById('mainList').classList.remove('hidden');
     renderArticles(allArticles);
@@ -941,7 +1177,7 @@
     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
   }
 
-  const STATUS_LABEL = { pending: '等待中', running: '翻译中', completed: '已完成', failed: '失败' };
+  const STATUS_LABEL = { pending: '等待中', running: '翻译中', completed: '已完成', failed: '失败', cancelled: '已取消' };
 
   async function refreshTasks() {
     try {
@@ -973,9 +1209,17 @@
         <span class="task-status ${t.status}">
           ${t.status === 'running' ? '<span class="spinner" style="width:10px;height:10px;margin-right:4px;border-width:1.5px;"></span>' : ''}${STATUS_LABEL[t.status]}
         </span>
-        ${t.status === 'completed' || t.status === 'failed' ? `<button class="task-clear" onclick="clearTask('${t.id}')">&times;</button>` : ''}
+        ${t.status === 'pending' || t.status === 'running' ? `<button class="task-clear" onclick="cancelTask('${t.id}')" title="取消">&#9632;</button>` : ''}
+        ${t.status === 'completed' || t.status === 'failed' || t.status === 'cancelled' ? `<button class="task-clear" onclick="clearTask('${t.id}')">&times;</button>` : ''}
       </div>
     `).join('');
+  }
+
+  async function cancelTask(id) {
+    try {
+      await fetch(`/ai-daily/api/tasks/${id}/cancel`, { method: 'POST' });
+      refreshTasks();
+    } catch (e) { /* ignore */ }
   }
 
   async function clearTask(id) {

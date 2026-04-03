@@ -13,7 +13,9 @@ load_dotenv()
 
 from graph import ai_daily_app
 from graph.nodes.fetch_rss import fetch_rss_entries
-from graph.nodes.save_to_local import get_translated_dates, ARTICLES_DIR
+from graph.nodes.save_to_local import (
+    get_article_list, get_translated_titles, ARTICLES_DIR,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -30,6 +32,7 @@ router = APIRouter(prefix="/ai-daily")
 
 # --- Task Manager ---
 tasks: dict[str, dict] = {}
+async_tasks: dict[str, asyncio.Task] = {}
 tasks_lock = asyncio.Lock()
 
 
@@ -40,15 +43,23 @@ async def _run_translate_task(task_id: str, entry: dict):
         await ai_daily_app.ainvoke({
             "rss_content": entry["content"],
             "date": entry["published"],
+            "title": entry["title"],
         })
         async with tasks_lock:
             tasks[task_id]["status"] = "completed"
         logger.info("翻译完成: %s", entry["title"])
+    except asyncio.CancelledError:
+        async with tasks_lock:
+            tasks[task_id]["status"] = "cancelled"
+        logger.info("翻译已取消: %s", entry["title"])
     except Exception as e:
         async with tasks_lock:
             tasks[task_id]["status"] = "failed"
             tasks[task_id]["error"] = str(e)
         logger.error("翻译失败 %s: %s", entry["title"], e)
+    finally:
+        async with tasks_lock:
+            async_tasks.pop(task_id, None)
 
 
 class TranslateRequest(BaseModel):
@@ -67,17 +78,17 @@ async def get_pending_entries(since: str | None = None):
         since = datetime.now(BJT).strftime("%Y-%m-%d")
 
     entries = fetch_rss_entries(since=since)
-    translated = set(get_translated_dates())
+    translated = get_translated_titles()
 
     async with tasks_lock:
-        translating = {t["date"] for t in tasks.values() if t["status"] in ("pending", "running")}
+        translating = {t["title"] for t in tasks.values() if t["status"] in ("pending", "running")}
 
     result = []
     for e in entries:
         status = None
-        if e["published"] in translated:
+        if e["title"] in translated:
             status = "translated"
-        elif e["published"] in translating:
+        elif e["title"] in translating:
             status = "translating"
         result.append({
             "index": e["index"],
@@ -92,9 +103,9 @@ async def get_pending_entries(since: str | None = None):
 @router.post("/api/translate")
 async def translate_entries(req: TranslateRequest):
     all_entries = fetch_rss_entries(since=req.since)
-    translated = set(get_translated_dates())
+    translated = get_translated_titles()
 
-    pending = [e for e in all_entries if e["published"] not in translated]
+    pending = [e for e in all_entries if e["title"] not in translated]
     selected = [e for e in pending if e["index"] in req.selected_indices]
 
     task_ids = []
@@ -107,7 +118,8 @@ async def translate_entries(req: TranslateRequest):
                 "date": entry["published"],
                 "status": "pending",
             }
-        asyncio.create_task(_run_translate_task(task_id, entry))
+        handle = asyncio.create_task(_run_translate_task(task_id, entry))
+        async_tasks[task_id] = handle
         task_ids.append(task_id)
 
     return {"task_ids": task_ids}
@@ -117,6 +129,22 @@ async def translate_entries(req: TranslateRequest):
 async def list_tasks():
     async with tasks_lock:
         return list(tasks.values())
+
+
+@router.post("/api/tasks/{task_id}/cancel")
+async def cancel_task(task_id: str):
+    async with tasks_lock:
+        task = tasks.get(task_id)
+        if not task:
+            raise HTTPException(status_code=404, detail="任务不存在")
+        if task["status"] not in ("pending", "running"):
+            raise HTTPException(status_code=400, detail="只能取消等待中或运行中的任务")
+        handle = async_tasks.get(task_id)
+        if handle:
+            handle.cancel()
+        else:
+            task["status"] = "cancelled"
+    return {"ok": True}
 
 
 @router.delete("/api/tasks/{task_id}")
@@ -133,12 +161,12 @@ async def delete_task(task_id: str):
 
 @router.get("/api/articles")
 async def list_articles():
-    return get_translated_dates()
+    return get_article_list()
 
 
-@router.get("/api/articles/{date}")
-async def get_article(date: str):
-    file_path = ARTICLES_DIR / f"{date}.md"
+@router.get("/api/articles/{article_id:path}")
+async def get_article(article_id: str):
+    file_path = ARTICLES_DIR / f"{article_id}.md"
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="文章不存在")
     return {"markdown": file_path.read_text(encoding="utf-8")}
