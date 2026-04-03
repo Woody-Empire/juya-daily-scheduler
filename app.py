@@ -1,5 +1,5 @@
+import asyncio
 import logging
-import threading
 import uuid
 from datetime import datetime, timezone, timedelta
 
@@ -30,22 +30,22 @@ router = APIRouter(prefix="/ai-daily")
 
 # --- Task Manager ---
 tasks: dict[str, dict] = {}
-tasks_lock = threading.Lock()
+tasks_lock = asyncio.Lock()
 
 
-def _run_translate_task(task_id: str, entry: dict):
-    with tasks_lock:
+async def _run_translate_task(task_id: str, entry: dict):
+    async with tasks_lock:
         tasks[task_id]["status"] = "running"
     try:
-        ai_daily_app.invoke({
+        await ai_daily_app.ainvoke({
             "rss_content": entry["content"],
             "date": entry["published"],
         })
-        with tasks_lock:
+        async with tasks_lock:
             tasks[task_id]["status"] = "completed"
         logger.info("翻译完成: %s", entry["title"])
     except Exception as e:
-        with tasks_lock:
+        async with tasks_lock:
             tasks[task_id]["status"] = "failed"
             tasks[task_id]["error"] = str(e)
         logger.error("翻译失败 %s: %s", entry["title"], e)
@@ -69,7 +69,7 @@ async def get_pending_entries(since: str | None = None):
     entries = fetch_rss_entries(since=since)
     translated = set(get_translated_dates())
 
-    with tasks_lock:
+    async with tasks_lock:
         translating = {t["date"] for t in tasks.values() if t["status"] in ("pending", "running")}
 
     result = []
@@ -100,15 +100,14 @@ async def translate_entries(req: TranslateRequest):
     task_ids = []
     for entry in selected:
         task_id = uuid.uuid4().hex[:8]
-        with tasks_lock:
+        async with tasks_lock:
             tasks[task_id] = {
                 "id": task_id,
                 "title": entry["title"],
                 "date": entry["published"],
                 "status": "pending",
             }
-        thread = threading.Thread(target=_run_translate_task, args=(task_id, entry), daemon=True)
-        thread.start()
+        asyncio.create_task(_run_translate_task(task_id, entry))
         task_ids.append(task_id)
 
     return {"task_ids": task_ids}
@@ -116,13 +115,13 @@ async def translate_entries(req: TranslateRequest):
 
 @router.get("/api/tasks")
 async def list_tasks():
-    with tasks_lock:
+    async with tasks_lock:
         return list(tasks.values())
 
 
 @router.delete("/api/tasks/{task_id}")
 async def delete_task(task_id: str):
-    with tasks_lock:
+    async with tasks_lock:
         task = tasks.get(task_id)
         if not task:
             raise HTTPException(status_code=404, detail="任务不存在")

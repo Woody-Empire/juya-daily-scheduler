@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import logging
@@ -32,7 +33,7 @@ def get_translated_dates() -> list[str]:
     return index.get("ai-daily", [])
 
 
-def save_to_local(state: State) -> dict:
+async def save_to_local(state: State) -> dict:
     """将 Markdown 内容保存到本地文件。"""
     _ensure_dirs()
 
@@ -40,7 +41,7 @@ def save_to_local(state: State) -> dict:
     md_content = state["markdown_content"]
 
     file_path = ARTICLES_DIR / f"{date}.md"
-    file_path.write_text(md_content, encoding="utf-8")
+    await asyncio.to_thread(file_path.write_text, md_content, "utf-8")
 
     # 更新 index.json
     index = _read_index()

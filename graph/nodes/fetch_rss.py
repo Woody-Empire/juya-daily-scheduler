@@ -1,3 +1,4 @@
+import asyncio
 import os
 import logging
 from datetime import datetime, timezone, timedelta
@@ -74,14 +75,14 @@ def fetch_rss_entries(since: str | None = None) -> list[dict]:
     return entries
 
 
-def fetch_rss(state: State) -> dict:
+async def fetch_rss(state: State) -> dict:
     """从 RSS 源获取指定条目的内容（用于 LangGraph 流水线）。"""
     content = state.get("rss_content", "")
     if content:
         return {"rss_content": content}
 
     feed_url = os.environ["RSS_FEED_URL"]
-    feed = feedparser.parse(feed_url)
+    feed = await asyncio.to_thread(feedparser.parse, feed_url)
     if not feed.entries:
         raise ValueError("RSS 中没有找到任何条目")
 

@@ -114,7 +114,7 @@ SYSTEM_PROMPT = """\
 """
 
 
-def translate_content(state: State) -> dict:
+async def translate_content(state: State) -> dict:
     """调用 OpenRouter LLM 生成每日简报。"""
     llm = ChatOpenAI(
         model="anthropic/claude-opus-4.6",
@@ -123,7 +123,7 @@ def translate_content(state: State) -> dict:
     )
 
     logger.info("正在调用 LLM 生成简报...")
-    response = llm.invoke([
+    response = await llm.ainvoke([
         SystemMessage(content=SYSTEM_PROMPT),
         HumanMessage(content=state["rss_content"]),
     ])
